@@ -1,40 +1,37 @@
-import { OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import React, { useRef } from "react";
+/// <reference path="../types/global.d.ts" />
+import "@react-three/fiber";
+import React from "react";
 import { useSelector } from "react-redux";
-import * as THREE from "three";
 import { RootState } from "../store/store";
+import Cubie from "./Cubie";
 
-const CubeFace: React.FC<{
-  color: string;
-  position: [number, number, number];
-}> = ({ color, position }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  return (
-    <mesh ref={meshRef} position={position}>
-      <planeGeometry args={[0.9, 0.9]} />
-      <meshBasicMaterial
-        attach="material"
-        color={color}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
-  );
-};
+const cubeSize = 3;
+const spacing = 1.02; // Minimized spacing to resemble a real cube
 
 const RubikCube: React.FC = () => {
-  const cubeState = useSelector((state: RootState) => state.cube);
+  const cubeFaces = useSelector((state: RootState) => state.cube.faces);
 
   return (
-    <Canvas>
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 5, 5]} intensity={0.8} />
-      <OrbitControls />
-      {cubeState.faces.map((face, index) => (
-        <CubeFace key={index} color={face.color} position={face.position} />
-      ))}
-    </Canvas>
+    <group scale={4}>
+      {Array.from({ length: cubeSize }).map((_, x) =>
+        Array.from({ length: cubeSize }).map((_, y) =>
+          Array.from({ length: cubeSize }).map((_, z) => (
+            <Cubie
+              key={`${x}-${y}-${z}`}
+              position={[x - 1, y - 1, z - 1]}
+              stickers={{
+                U: cubeFaces.U.stickers[x + y * 3],
+                D: cubeFaces.D.stickers[x + y * 3],
+                F: cubeFaces.F.stickers[x + z * 3],
+                B: cubeFaces.B.stickers[x + z * 3],
+                L: cubeFaces.L.stickers[y + z * 3],
+                R: cubeFaces.R.stickers[y + z * 3],
+              }}
+            />
+          ))
+        )
+      )}
+    </group>
   );
 };
 

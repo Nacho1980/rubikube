@@ -1,9 +1,9 @@
 import { configureStore } from "@reduxjs/toolkit";
-import rubikubeReducer from "../reducers/cubeSlice";
+import cubeReducer from "../reducers/cubeSlice";
 
 export const store = configureStore({
   reducer: {
-    rubikube: rubikubeReducer,
+    cube: cubeReducer,
   },
 });
 

@@ -1,11 +1,11 @@
 import "./App.css";
-import RubikCube from "./components/RubikCube";
+import Scene from "./components/Scene";
 
 function App() {
   return (
     <div className="app-container">
       <h1>RubiKube</h1>
-      <RubikCube />
+      <Scene />
     </div>
   );
 }
