@@ -1,25 +1,38 @@
 import { OrbitControls, OrthographicCamera } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useDispatch } from "react-redux";
+import * as THREE from "three";
+import { rotateLayer } from "../reducers/cubeSlice";
+import { CubeState } from "../types";
 import RubikCube from "./RubikCube";
 
-// Separate component for the 3D scene contents
-const SceneContents: React.FC<{
+interface SceneContentsProps {
   isDraggingCube: boolean;
-  onPointerDown: (event: THREE.PointerEvent) => void;
-  onPointerMove: (event: THREE.PointerEvent) => void;
-  onPointerUp: (event: THREE.PointerEvent) => void;
-}> = ({ isDraggingCube, onPointerDown, onPointerMove, onPointerUp }) => {
-  const orbitRef = useRef(null);
+  onPointerDown: (
+    event: THREE.Event & { intersections: THREE.Intersection[] }
+  ) => void;
+  onPointerMove: (
+    event: THREE.Event & { intersections: THREE.Intersection[] }
+  ) => void;
+  onPointerUp: (event: THREE.Event) => void;
+}
+
+const SceneContents: React.FC<SceneContentsProps> = ({
+  isDraggingCube,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+}) => {
+  const orbitRef = useRef<any>(null);
   const { camera } = useThree();
 
-  // Adjust the camera zoom to make the cube slightly smaller
-  useEffect(() => {
+  /*   useEffect(() => {
     if (camera) {
-      (camera as THREE.OrthographicCamera).zoom = 0.85; // Adjust this value to make cube smaller/larger
+      (camera as THREE.OrthographicCamera).zoom = 0.85;
       camera.updateProjectionMatrix();
     }
-  }, [camera]);
+  }, [camera]); */
 
   return (
     <>
@@ -46,63 +59,112 @@ const SceneContents: React.FC<{
         ref={orbitRef}
         enableZoom={false}
         rotateSpeed={0.8}
-        enabled={!isDraggingCube}
+        enabled={isDraggingCube} // Only rotate when right-clicking
       />
     </>
   );
 };
 
+type FaceKey = keyof CubeState["faces"];
+
+const getFaceFromNormal = (normal: THREE.Vector3): FaceKey | null => {
+  const absX = Math.abs(normal.x);
+  const absY = Math.abs(normal.y);
+  const absZ = Math.abs(normal.z);
+
+  if (absX > absY && absX > absZ) {
+    return normal.x > 0 ? "R" : "L";
+  } else if (absY > absX && absY > absZ) {
+    return normal.y > 0 ? "U" : "D";
+  } else if (absZ > absX && absZ > absY) {
+    return normal.z > 0 ? "F" : "B";
+  }
+  return null;
+};
+
+interface DragState {
+  x: number;
+  y: number;
+}
+
+interface SelectedFaceState {
+  face: FaceKey;
+  normal: THREE.Vector3;
+}
+
 const Scene: React.FC = () => {
+  const dispatch = useDispatch();
   const [isDraggingCube, setIsDraggingCube] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(
-    null
-  );
-  const [selectedFace, setSelectedFace] = useState<THREE.Intersection | null>(
+  const [dragStart, setDragStart] = useState<DragState | null>(null);
+  const [selectedFace, setSelectedFace] = useState<SelectedFaceState | null>(
     null
   );
 
-  const handlePointerDown = (event: THREE.PointerEvent) => {
-    // Prevent event from propagating to OrbitControls
+  const handlePointerDown = (
+    event: THREE.PointerEvent & { intersections: THREE.Intersection[] }
+  ) => {
     event.stopPropagation();
 
-    if (event.intersections.length > 0) {
-      setIsDraggingCube(true);
-      setDragStart({ x: event.point.x, y: event.point.y });
-      setSelectedFace(event.intersections[0]); // Store the intersected face
-    }
-  };
-
-  const handlePointerMove = (event: THREE.PointerEvent) => {
-    if (isDraggingCube && dragStart && selectedFace) {
-      // Prevent event from propagating to OrbitControls
-      event.stopPropagation();
-
-      const deltaX = event.point.x - dragStart.x;
-      const deltaY = event.point.y - dragStart.y;
-
-      // Get the face normal in world coordinates
-      const normal = selectedFace.face?.normal.clone();
-      if (normal) {
-        normal.transformDirection(selectedFace.object.matrixWorld);
-
-        // Determine which axis of rotation to use based on the face normal
-        // and the drag direction
-        if (Math.abs(deltaX) > Math.abs(deltaY)) {
-          console.log("Horizontal row rotation", deltaX > 0 ? "right" : "left");
-          // Here you would implement the actual cube row rotation
-          // based on the selected face and drag direction
-        } else {
-          console.log("Vertical column rotation", deltaY > 0 ? "down" : "up");
-          // Here you would implement the actual cube column rotation
-          // based on the selected face and drag direction
-        }
+    if (event.intersections.length > 0 && event.button === 0) {
+      const intersection = event.intersections[0];
+      if (!intersection.face) {
+        setIsDraggingCube(true);
+        return;
       }
 
-      setDragStart({ x: event.point.x, y: event.point.y });
+      const normal = intersection.face.normal.clone();
+      normal.transformDirection(intersection.object.matrixWorld);
+
+      const face = getFaceFromNormal(normal);
+      if (face) {
+        setDragStart({ x: event.clientX, y: event.clientY });
+        setSelectedFace({ face, normal });
+      }
     }
   };
 
-  const handlePointerUp = (event: THREE.PointerEvent) => {
+  const handlePointerMove = (
+    event: THREE.PointerEvent & { intersections: THREE.Intersection[] }
+  ) => {
+    if (dragStart && selectedFace) {
+      event.stopPropagation();
+
+      const deltaX = event.clientX - dragStart.x;
+      const deltaY = event.clientY - dragStart.y;
+      const threshold = 5;
+
+      if (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold) {
+        const { face } = selectedFace;
+        let clockwise = false;
+
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+          // Horizontal drag
+          clockwise = face === "F" ? deltaX > 0 : deltaX < 0;
+        } else {
+          // Vertical drag
+          clockwise = face === "U" ? deltaY > 0 : deltaY < 0;
+        }
+
+        dispatch(
+          rotateLayer({
+            axis:
+              face === "U" || face === "D"
+                ? "y"
+                : face === "L" || face === "R"
+                ? "x"
+                : "z",
+            layer: face === "U" || face === "L" || face === "F" ? 1 : -1,
+            direction: clockwise ? 1 : -1,
+          })
+        );
+
+        setDragStart(null);
+        setSelectedFace(null);
+      }
+    }
+  };
+
+  const handlePointerUp = (event: THREE.Event) => {
     event.stopPropagation();
     setIsDraggingCube(false);
     setDragStart(null);

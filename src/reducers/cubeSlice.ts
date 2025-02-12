@@ -1,71 +1,148 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { BLUE, GREEN, ORANGE, RED, WHITE, YELLOW } from "../constants";
 import { CubeState } from "../types";
 
 // Initialize each face as a 3×3 grid filled with the same color.
 const initialState: CubeState = {
   faces: {
-    U: { stickers: Array(9).fill("white") },
-    D: { stickers: Array(9).fill("yellow") },
-    F: { stickers: Array(9).fill("green") },
-    B: { stickers: Array(9).fill("blue") },
-    L: { stickers: Array(9).fill("orange") },
-    R: { stickers: Array(9).fill("red") },
+    U: { stickers: Array(9).fill(WHITE) },
+    D: { stickers: Array(9).fill(YELLOW) },
+    F: { stickers: Array(9).fill(GREEN) },
+    B: { stickers: Array(9).fill(BLUE) },
+    L: { stickers: Array(9).fill(ORANGE) },
+    R: { stickers: Array(9).fill(RED) },
   },
 };
 
-/**
- * Rotates an array of 9 stickers (a 3x3 grid) by 90°.
- * @param stickers - An array of 9 strings.
- * @param clockwise - If true, rotate 90° clockwise; otherwise, counterclockwise.
- * @returns A new array of stickers after rotation.
- */
-const rotateStickers = (stickers: string[], clockwise: boolean): string[] => {
-  if (stickers.length !== 9) return stickers;
-  const newStickers = new Array<string>(9);
-  if (clockwise) {
-    // For a 3x3 grid, the mapping for a 90° clockwise rotation is:
-    // new[0] = old[6], new[1] = old[3], new[2] = old[0],
-    // new[3] = old[7], new[4] = old[4], new[5] = old[1],
-    // new[6] = old[8], new[7] = old[5], new[8] = old[2]
-    const mapping = [6, 3, 0, 7, 4, 1, 8, 5, 2];
-    for (let i = 0; i < 9; i++) {
-      newStickers[i] = stickers[mapping[i]];
-    }
-  } else {
-    // The inverse mapping for a 90° counterclockwise rotation is:
-    // new[0] = old[2], new[1] = old[5], new[2] = old[8],
-    // new[3] = old[1], new[4] = old[4], new[5] = old[7],
-    // new[6] = old[0], new[7] = old[3], new[8] = old[6]
-    const mapping = [2, 5, 8, 1, 4, 7, 0, 3, 6];
-    for (let i = 0; i < 9; i++) {
-      newStickers[i] = stickers[mapping[i]];
-    }
-  }
-  return newStickers;
-};
-
-const cubeSlice = createSlice({
+export const cubeSlice = createSlice({
   name: "cube",
   initialState,
   reducers: {
-    // Action payload: an object containing the face identifier (e.g., "U", "F", etc.) and a boolean for rotation direction.
-    rotateFace: (
+    rotateLayer: (
       state,
       action: PayloadAction<{
-        face: keyof CubeState["faces"];
-        clockwise: boolean;
+        axis: "x" | "y" | "z";
+        layer: number;
+        direction: 1 | -1;
       }>
     ) => {
-      const { face, clockwise } = action.payload;
-      // Rotate only the stickers of the specified face.
-      state.faces[face].stickers = rotateStickers(
-        state.faces[face].stickers,
-        clockwise
-      );
+      const { axis, layer, direction } = action.payload;
+
+      // Create a deep copy of the current state
+      const newState = JSON.parse(JSON.stringify(state.faces));
+
+      switch (axis) {
+        case "x": // Rotate around x-axis (R/L faces)
+          if (layer === -1) {
+            // Left face
+            rotateX(newState, 0, direction);
+          } else if (layer === 1) {
+            // Right face
+            rotateX(newState, 2, direction);
+          }
+          break;
+
+        case "y": // Rotate around y-axis (U/D faces)
+          if (layer === -1) {
+            // Down face
+            rotateY(newState, 0, direction);
+          } else if (layer === 1) {
+            // Up face
+            rotateY(newState, 2, direction);
+          }
+          break;
+
+        case "z": // Rotate around z-axis (F/B faces)
+          if (layer === -1) {
+            // Back face
+            rotateZ(newState, 0, direction);
+          } else if (layer === 1) {
+            // Front face
+            rotateZ(newState, 2, direction);
+          }
+          break;
+      }
+
+      state.faces = newState;
     },
-    resetCube: () => initialState,
   },
 });
 
-export const { rotateFace, resetCube } = cubeSlice.actions;
+// Helper functions for rotating faces
+const rotateX = (
+  faces: CubeState["faces"],
+  layer: number,
+  direction: 1 | -1
+) => {
+  const temp = [...faces.F.stickers];
+  if (direction === 1) {
+    // Rotate clockwise around X
+    for (let i = 0; i < 3; i++) {
+      faces.F.stickers[layer + i * 3] = faces.D.stickers[layer + i * 3];
+      faces.D.stickers[layer + i * 3] = faces.B.stickers[layer + i * 3];
+      faces.B.stickers[layer + i * 3] = faces.U.stickers[layer + i * 3];
+      faces.U.stickers[layer + i * 3] = temp[layer + i * 3];
+    }
+  } else {
+    // Rotate counter-clockwise around X
+    for (let i = 0; i < 3; i++) {
+      faces.F.stickers[layer + i * 3] = faces.U.stickers[layer + i * 3];
+      faces.U.stickers[layer + i * 3] = faces.B.stickers[layer + i * 3];
+      faces.B.stickers[layer + i * 3] = faces.D.stickers[layer + i * 3];
+      faces.D.stickers[layer + i * 3] = temp[layer + i * 3];
+    }
+  }
+};
+
+const rotateY = (
+  faces: CubeState["faces"],
+  layer: number,
+  direction: 1 | -1
+) => {
+  const temp = [...faces.F.stickers];
+  if (direction === 1) {
+    // Rotate clockwise around Y
+    for (let i = 0; i < 3; i++) {
+      faces.F.stickers[i + layer * 3] = faces.R.stickers[i + layer * 3];
+      faces.R.stickers[i + layer * 3] = faces.B.stickers[i + layer * 3];
+      faces.B.stickers[i + layer * 3] = faces.L.stickers[i + layer * 3];
+      faces.L.stickers[i + layer * 3] = temp[i + layer * 3];
+    }
+  } else {
+    // Rotate counter-clockwise around Y
+    for (let i = 0; i < 3; i++) {
+      faces.F.stickers[i + layer * 3] = faces.L.stickers[i + layer * 3];
+      faces.L.stickers[i + layer * 3] = faces.B.stickers[i + layer * 3];
+      faces.B.stickers[i + layer * 3] = faces.R.stickers[i + layer * 3];
+      faces.R.stickers[i + layer * 3] = temp[i + layer * 3];
+    }
+  }
+};
+
+const rotateZ = (
+  faces: CubeState["faces"],
+  layer: number,
+  direction: 1 | -1
+) => {
+  const temp = [...faces.U.stickers];
+  if (direction === 1) {
+    // Rotate clockwise around Z
+    for (let i = 0; i < 3; i++) {
+      faces.U.stickers[i + layer * 3] = faces.L.stickers[2 - i + layer * 3];
+      faces.L.stickers[2 - i + layer * 3] = faces.D.stickers[i + layer * 3];
+      faces.D.stickers[i + layer * 3] = faces.R.stickers[2 - i + layer * 3];
+      faces.R.stickers[2 - i + layer * 3] = temp[i + layer * 3];
+    }
+  } else {
+    // Rotate counter-clockwise around Z
+    for (let i = 0; i < 3; i++) {
+      faces.U.stickers[i + layer * 3] = faces.R.stickers[2 - i + layer * 3];
+      faces.R.stickers[2 - i + layer * 3] = faces.D.stickers[i + layer * 3];
+      faces.D.stickers[i + layer * 3] = faces.L.stickers[2 - i + layer * 3];
+      faces.L.stickers[2 - i + layer * 3] = temp[i + layer * 3];
+    }
+  }
+};
+
+export const { rotateLayer } = cubeSlice.actions;
 export default cubeSlice.reducer;

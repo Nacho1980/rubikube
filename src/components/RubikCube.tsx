@@ -6,26 +6,25 @@ import { RootState } from "../store/store";
 import Cubie from "./Cubie";
 
 const cubeSize = 3;
-const spacing = 1.02; // Minimized spacing to resemble a real cube
 
 const RubikCube: React.FC = () => {
   const cubeFaces = useSelector((state: RootState) => state.cube.faces);
 
   return (
-    <group scale={4}>
+    <group position={[-1, -1, -1]} scale={[2.5, 2.5, 2.5]}>
       {Array.from({ length: cubeSize }).map((_, x) =>
         Array.from({ length: cubeSize }).map((_, y) =>
           Array.from({ length: cubeSize }).map((_, z) => (
             <Cubie
               key={`${x}-${y}-${z}`}
-              position={[x - 1, y - 1, z - 1]}
+              position={[x, y, z]}
               stickers={{
-                U: cubeFaces.U.stickers[x + y * 3],
-                D: cubeFaces.D.stickers[x + y * 3],
-                F: cubeFaces.F.stickers[x + z * 3],
-                B: cubeFaces.B.stickers[x + z * 3],
-                L: cubeFaces.L.stickers[y + z * 3],
-                R: cubeFaces.R.stickers[y + z * 3],
+                U: cubeFaces.U.stickers,
+                D: cubeFaces.D.stickers,
+                F: cubeFaces.F.stickers,
+                B: cubeFaces.B.stickers,
+                L: cubeFaces.L.stickers,
+                R: cubeFaces.R.stickers,
               }}
             />
           ))
