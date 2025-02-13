@@ -1,4 +1,3 @@
-// Cubie.tsx
 import React from "react";
 import { BLACK } from "../constants";
 
@@ -26,6 +25,8 @@ const Cubie: React.FC<CubieProps> = ({
   highlighted = false,
 }) => {
   const [x, y, z] = position;
+
+  // Only show color on faces that are "exposed"
   const isExternalFace = {
     U: y === 2,
     D: y === 0,
@@ -34,6 +35,8 @@ const Cubie: React.FC<CubieProps> = ({
     L: x === 0,
     R: x === 2,
   };
+
+  // Map each face to an index in that face’s 3×3 array
   const getColorForFace = (face: keyof Faces) => {
     if (!isExternalFace[face]) return BLACK;
     const indexMap = {
@@ -44,9 +47,12 @@ const Cubie: React.FC<CubieProps> = ({
       L: z + 3 * (2 - y),
       R: 2 - z + 3 * (2 - y),
     } as const;
+
     return faces[face].stickers[indexMap[face]] || BLACK;
   };
+
   const faceOrder: (keyof Faces)[] = ["R", "L", "U", "D", "F", "B"];
+
   return (
     <group position={[x, y, z]}>
       <mesh userData={{ position: [x, y, z] }}>
