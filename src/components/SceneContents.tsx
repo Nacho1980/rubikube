@@ -153,7 +153,7 @@ const SceneContents: React.FC = () => {
   );
 
   const handlePointerUp = useCallback(() => {
-    setIsDraggingCube(false);
+    setIsDraggingCube(true);
     setDragStart(null);
   }, []);
 
