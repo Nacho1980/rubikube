@@ -135,7 +135,9 @@ const SceneContents: React.FC = () => {
             dragAmount = deltaX;
           } else {
             chosenAxis = vertical;
-            dragAmount = deltaY;
+            //dragAmount = deltaY;
+            // Invert vertical drag on the right face (face normal near [1,0,0])
+            dragAmount = dragStart.faceNormal.x > 0.9 ? -deltaY : deltaY;
           }
           const direction = dragAmount > 0 ? 1 : -1;
           // Determine the slice layer from the cubie's coordinate along the chosen axis.
