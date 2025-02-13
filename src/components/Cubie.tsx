@@ -1,16 +1,31 @@
-import { Text } from "@react-three/drei";
+// Cubie.tsx
+import React from "react";
 import { BLACK } from "../constants";
 
-/**
- * Represents a single cubie in the Rubik's Cube.
- */
-const Cubie: React.FC<{
-  position: [number, number, number];
-  stickers: Partial<Record<"U" | "D" | "F" | "B" | "L" | "R", string[]>>;
-}> = ({ position, stickers }) => {
-  const [x, y, z] = position;
+interface FaceData {
+  stickers: string[];
+}
+interface Faces {
+  U: FaceData;
+  D: FaceData;
+  F: FaceData;
+  B: FaceData;
+  L: FaceData;
+  R: FaceData;
+}
 
-  // Determines if a face is external
+interface CubieProps {
+  position: [number, number, number];
+  faces: Faces;
+  highlighted?: boolean;
+}
+
+const Cubie: React.FC<CubieProps> = ({
+  position,
+  faces,
+  highlighted = false,
+}) => {
+  const [x, y, z] = position;
   const isExternalFace = {
     U: y === 2,
     D: y === 0,
@@ -19,87 +34,49 @@ const Cubie: React.FC<{
     L: x === 0,
     R: x === 2,
   };
-
-  // Get color based on the face and position
-  const getColorForFace = (face: "U" | "D" | "F" | "B" | "L" | "R") => {
-    let col = BLACK;
-    if (!isExternalFace[face]) {
-      col = BLACK; // Interior faces are black
-    } else {
-      const indexMap = {
-        U: x + 3 * y,
-        D: x + 3 * y,
-        F: x + 3 * z,
-        B: x + 3 * z,
-        L: z + 3 * y,
-        R: z + 3 * y,
-      };
-
-      col = stickers[face]?.[indexMap[face]] || BLACK;
-    }
-    //console.log(stickers[face]);
-    //console.log(face, x, y, z, col);
-    return col;
+  const getColorForFace = (face: keyof Faces) => {
+    if (!isExternalFace[face]) return BLACK;
+    const indexMap = {
+      U: x + 3 * (2 - z),
+      D: x + 3 * z,
+      F: x + 3 * (2 - y),
+      B: 2 - x + 3 * (2 - y),
+      L: z + 3 * (2 - y),
+      R: 2 - z + 3 * (2 - y),
+    } as const;
+    return faces[face].stickers[indexMap[face]] || BLACK;
   };
-  // Order in which materials are assigned to faces of box in Three
-  const faceOrder = ["R", "L", "U", "D", "F", "B"];
-  const isDebugging = false;
-
+  const faceOrder: (keyof Faces)[] = ["R", "L", "U", "D", "F", "B"];
   return (
-    <group position={[x, y, z]} key={"group" + x + "-" + y + "-" + z}>
-      <mesh castShadow receiveShadow key={"mesh" + x + "-" + y + "-" + z}>
-        <boxGeometry
-          args={[0.98, 0.98, 0.98]}
-          key={"box" + x + "-" + y + "-" + z}
-        />
-        {faceOrder.map((face, i) => (
-          <>
+    <group position={[x, y, z]}>
+      <mesh userData={{ position: [x, y, z] }}>
+        <boxGeometry args={[0.98, 0.98, 0.98]} />
+        {faceOrder.map((face, i) => {
+          const color = getColorForFace(face);
+          return (
             <meshStandardMaterial
-              key={"material" + face + x + "-" + y + "-" + z}
+              key={face}
               attach={`material-${i}`}
-              color={getColorForFace(face)}
-              emissive={getColorForFace(face)}
+              color={color}
+              emissive={color}
               emissiveIntensity={0.6}
               metalness={0.3}
               roughness={0.5}
-              depthWrite={true}
-              depthTest={true}
             />
-            {/* Add text labels to all external faces */}
-            {isDebugging && isExternalFace[face] ? (
-              <Text
-                key={"text" + face + x + "-" + y + "-" + z}
-                position={
-                  {
-                    U: [0, 0.51, 0],
-                    D: [0, -0.51, 0],
-                    F: [0, 0, 0.51],
-                    B: [0, 0, -0.51],
-                    L: [-0.51, 0, 0],
-                    R: [0.51, 0, 0],
-                  }[face]
-                }
-                rotation={
-                  {
-                    U: [Math.PI / 2, 0, 0],
-                    D: [-Math.PI / 2, 0, 0],
-                    F: [0, 0, 0],
-                    B: [0, Math.PI, 0],
-                    L: [0, -Math.PI / 2, 0],
-                    R: [0, Math.PI / 2, 0],
-                  }[face]
-                }
-                fontSize={0.2}
-                color="purple"
-                anchorX="center"
-                anchorY="middle"
-              >
-                {face}({x},{y},{z})
-              </Text>
-            ) : null}
-          </>
-        ))}
+          );
+        })}
       </mesh>
+      {highlighted && (
+        <mesh>
+          <boxGeometry args={[1.02, 1.02, 1.02]} />
+          <meshBasicMaterial
+            color="yellow"
+            wireframe
+            transparent
+            opacity={0.8}
+          />
+        </mesh>
+      )}
     </group>
   );
 };
