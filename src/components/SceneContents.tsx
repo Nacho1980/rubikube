@@ -20,26 +20,19 @@ interface DragState {
 const SceneContents: React.FC = () => {
   const [isDraggingCube, setIsDraggingCube] = useState(true);
   const [dragStart, setDragStart] = useState<DragState | null>(null);
-
-  // Which slice is rotating: (axis, layer, direction)
   const [highlightedLayer, setHighlightedLayer] = useState<{
     axis: "x" | "y" | "z";
     layer: number;
     direction: 1 | -1;
   } | null>(null);
-
-  // 0..1 progress of the slice rotation
   const [rotationProgress, setRotationProgress] = useState(0);
-  // Store the current slice‐rotation instruction until it finishes
   const rotationRef = useRef<{
     axis: "x" | "y" | "z";
     layer: number;
     direction: 1 | -1;
   } | null>(null);
-
   const dispatch = useDispatch();
 
-  // Animate slice rotation from 0°..90°
   useFrame(() => {
     if (!rotationRef.current) return;
     setRotationProgress((prev) => {
@@ -59,7 +52,6 @@ const SceneContents: React.FC = () => {
     });
   });
 
-  // Pointer down
   const handlePointerDown = useCallback((event: any) => {
     event.stopPropagation();
     const intersect = event.intersections[0];
@@ -67,8 +59,6 @@ const SceneContents: React.FC = () => {
       intersect &&
       intersect.object.userData &&
       intersect.object.userData.position !== undefined;
-
-    // If we clicked on a cubie => disable OrbitControls
     setIsDraggingCube(!isCubie);
 
     if (isCubie && intersect.face) {
@@ -80,7 +70,6 @@ const SceneContents: React.FC = () => {
       const faceNormal = intersect.face.normal
         .clone()
         .transformDirection(intersect.object.matrixWorld);
-
       setDragStart({
         x: event.clientX,
         y: event.clientY,
@@ -89,7 +78,6 @@ const SceneContents: React.FC = () => {
         faceNormal,
       });
     } else {
-      // Clicked background => keep OrbitControls
       setDragStart({
         x: event.clientX,
         y: event.clientY,
@@ -98,27 +86,20 @@ const SceneContents: React.FC = () => {
     }
   }, []);
 
-  // Decide which axes to rotate for a given face normal
   const getRotationAxes = (faceNormal: THREE.Vector3) => {
     const tolerance = 0.9;
-    if (Math.abs(faceNormal.z) > tolerance) {
-      // front/back => horizontal => y, vertical => x
+    if (Math.abs(faceNormal.z) > tolerance)
       return { horizontal: "y", vertical: "x" };
-    } else if (Math.abs(faceNormal.x) > tolerance) {
-      // right/left => horizontal => y, vertical => z
+    if (Math.abs(faceNormal.x) > tolerance)
       return { horizontal: "y", vertical: "z" };
-    } else if (Math.abs(faceNormal.y) > tolerance) {
-      // top/bottom => horizontal => x, vertical => z
+    if (Math.abs(faceNormal.y) > tolerance)
       return { horizontal: "x", vertical: "z" };
-    }
     return { horizontal: "y", vertical: "x" };
   };
 
-  // Pointer move
   const handlePointerMove = useCallback(
     (event: any) => {
       if (!dragStart || rotationRef.current) return;
-
       if (
         dragStart.intersectsCube &&
         dragStart.faceNormal &&
@@ -126,7 +107,6 @@ const SceneContents: React.FC = () => {
       ) {
         const deltaX = event.clientX - dragStart.x;
         const deltaY = event.clientY - dragStart.y;
-
         if (
           Math.abs(deltaX) > DRAG_THRESHOLD ||
           Math.abs(deltaY) > DRAG_THRESHOLD
@@ -137,30 +117,23 @@ const SceneContents: React.FC = () => {
           let chosenAxis: "x" | "y" | "z";
           let dragAmount: number;
 
-          // Pick the dominant drag direction
           if (Math.abs(deltaX) > Math.abs(deltaY)) {
             chosenAxis = horizontal;
             dragAmount = deltaX;
           } else {
             chosenAxis = vertical;
             dragAmount = deltaY;
-
-            // If we want top->bottom to be positive on the right face:
             if (chosenAxis === "z" && Math.abs(dragStart.faceNormal.x) > 0.9) {
-              // Invert so top->bottom yields +drag
               dragAmount = -dragAmount;
             }
           }
 
           const direction = dragAmount > 0 ? 1 : -1;
-
-          // Figure out slice layer from the cubie position
           let layer = 0;
           if (chosenAxis === "x") layer = dragStart.cubiePosition[0];
           else if (chosenAxis === "y") layer = dragStart.cubiePosition[1];
           else if (chosenAxis === "z") layer = dragStart.cubiePosition[2];
 
-          // Now animate that slice
           rotationRef.current = { axis: chosenAxis, layer, direction };
           setHighlightedLayer({ axis: chosenAxis, layer, direction });
           setDragStart(null);
@@ -170,9 +143,7 @@ const SceneContents: React.FC = () => {
     [dragStart]
   );
 
-  // Pointer up
   const handlePointerUp = useCallback(() => {
-    // Re-enable OrbitControls
     setIsDraggingCube(true);
     setDragStart(null);
   }, []);
@@ -192,7 +163,6 @@ const SceneContents: React.FC = () => {
       <ambientLight intensity={1.5} />
       <directionalLight position={[5, 5, 5]} intensity={2} />
 
-      {/* Large invisible plane for background clicks */}
       <mesh
         position={[0, 0, -10]}
         onPointerDown={handlePointerDown}
@@ -203,8 +173,8 @@ const SceneContents: React.FC = () => {
         <planeGeometry args={[100, 100]} />
       </mesh>
 
-      {/* The cube */}
       <group
+        scale={[2.5, 2.5, 2.5]}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

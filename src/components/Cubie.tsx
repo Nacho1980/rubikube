@@ -14,6 +14,7 @@ interface Faces {
 }
 
 interface CubieProps {
+  // Grid coordinates in [0, 1, 2]
   position: [number, number, number];
   faces: Faces;
   highlighted?: boolean;
@@ -26,7 +27,7 @@ const Cubie: React.FC<CubieProps> = ({
 }) => {
   const [x, y, z] = position;
 
-  // Only show color on faces that are "exposed"
+  // Determine which faces are external (using grid coords)
   const isExternalFace = {
     U: y === 2,
     D: y === 0,
@@ -36,7 +37,7 @@ const Cubie: React.FC<CubieProps> = ({
     R: x === 2,
   };
 
-  // Map each face to an index in that face’s 3×3 array
+  // Use the same indexing as in your reducer:
   const getColorForFace = (face: keyof Faces) => {
     if (!isExternalFace[face]) return BLACK;
     const indexMap = {
@@ -47,13 +48,13 @@ const Cubie: React.FC<CubieProps> = ({
       L: z + 3 * (2 - y),
       R: 2 - z + 3 * (2 - y),
     } as const;
-
     return faces[face].stickers[indexMap[face]] || BLACK;
   };
 
   const faceOrder: (keyof Faces)[] = ["R", "L", "U", "D", "F", "B"];
 
   return (
+    // Use grid coordinates directly.
     <group position={[x, y, z]}>
       <mesh userData={{ position: [x, y, z] }}>
         <boxGeometry args={[0.98, 0.98, 0.98]} />

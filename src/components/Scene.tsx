@@ -14,7 +14,6 @@ const Scene: React.FC = () => {
       }}
     >
       <Canvas style={{ width: "100%", height: "100%" }}>
-        {/* Render the real scene inside the Canvas */}
         <SceneContents />
       </Canvas>
     </div>

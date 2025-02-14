@@ -7,13 +7,13 @@ const cubeSize = 3;
 
 export interface HighlightedLayer {
   axis: "x" | "y" | "z";
-  layer: number;
-  direction: 1 | -1;
+  layer: number; // 0,1,2
+  direction: 1 | -1; // +1 or -1
 }
 
 interface RubikCubeProps {
   highlightedLayer?: HighlightedLayer | null;
-  rotationProgress?: number; // fraction of 90°
+  rotationProgress?: number; // fraction of a 90° turn (0..1)
 }
 
 const RubikCube: React.FC<RubikCubeProps> = ({
@@ -22,76 +22,74 @@ const RubikCube: React.FC<RubikCubeProps> = ({
 }) => {
   const faces = useSelector((state: RootState) => state.cube.faces);
 
+  const staticCubies: JSX.Element[] = [];
+  const rotatingCubies: JSX.Element[] = [];
+
+  // Loop over grid coordinates 0..2
+  for (let x = 0; x < cubeSize; x++) {
+    for (let y = 0; y < cubeSize; y++) {
+      for (let z = 0; z < cubeSize; z++) {
+        const key = `cubie-${x}-${y}-${z}`;
+        let inRotatingLayer = false;
+
+        if (highlightedLayer) {
+          const { axis, layer } = highlightedLayer;
+          if (
+            (axis === "x" && x === layer) ||
+            (axis === "y" && y === layer) ||
+            (axis === "z" && z === layer)
+          ) {
+            inRotatingLayer = true;
+          }
+        }
+
+        const cubieEl = (
+          <Cubie
+            key={key}
+            position={[x, y, z]}
+            faces={faces}
+            highlighted={inRotatingLayer}
+          />
+        );
+
+        if (inRotatingLayer) rotatingCubies.push(cubieEl);
+        else staticCubies.push(cubieEl);
+      }
+    }
+  }
+
+  // Center the entire cube by moving it back by half its size
+  const centerOffset: [number, number, number] = [-1, -1, -1];
+
+  // If no layer is rotating, render the entire centered cube
+  if (!highlightedLayer) {
+    return <group position={centerOffset}>{staticCubies}</group>;
+  }
+
+  // Calculate rotation for the active layer
+  const { axis, layer, direction } = highlightedLayer;
+  const angle = direction * rotationProgress * (Math.PI / 2);
+
+  // Set up rotation axis
+  const rotationVector: [number, number, number] =
+    axis === "x" ? [angle, 0, 0] : axis === "y" ? [0, angle, 0] : [0, 0, angle];
+
   return (
-    /**
-     * Shift the entire cube from (0..2)^3 to center it,
-     * then scale it up to make it visible.
-     */
-    <group position={[-1, -1, -1]} scale={[2.5, 2.5, 2.5]}>
-      {Array.from({ length: cubeSize }).map((_, x) =>
-        Array.from({ length: cubeSize }).map((_, y) =>
-          Array.from({ length: cubeSize }).map((_, z) => {
-            const key = `cubie-${x}-${y}-${z}`;
+    <group position={centerOffset}>
+      {/* Static cubies */}
+      {staticCubies}
 
-            // Check if this cubie is in the slice being rotated
-            let inHighlightedLayer = false;
-            if (highlightedLayer) {
-              const { axis, layer } = highlightedLayer;
-              if (axis === "x" && x === layer) inHighlightedLayer = true;
-              if (axis === "y" && y === layer) inHighlightedLayer = true;
-              if (axis === "z" && z === layer) inHighlightedLayer = true;
-            }
-
-            // Normal cubie
-            const cubie = (
-              <Cubie
-                key={key}
-                position={[x, y, z]}
-                faces={faces}
-                highlighted={inHighlightedLayer}
-              />
-            );
-
-            // If it's in the rotating slice, pivot it
-            if (inHighlightedLayer && highlightedLayer) {
-              const { axis, direction } = highlightedLayer;
-              // angle from 0..90 degrees
-              const angle = direction * rotationProgress * (Math.PI / 2);
-
-              // The center of the face (layer) in original coords is (layer,1,1) if axis=x,
-              // (1,layer,1) if axis=y, or (1,1,layer) if axis=z.
-              // After offset by [-1,-1,-1], that becomes (layer-1, 0,0), (0,layer-1,0), or (0,0,layer-1).
-              let pivot: [number, number, number] = [0, 0, 0];
-              if (axis === "x") {
-                pivot = [highlightedLayer.layer - 1, 0, 0];
-              } else if (axis === "y") {
-                pivot = [0, highlightedLayer.layer - 1, 0];
-              } else if (axis === "z") {
-                pivot = [0, 0, highlightedLayer.layer - 1];
-              }
-
-              // Axis of rotation
-              let rotation: [number, number, number] = [0, 0, 0];
-              if (axis === "x") rotation = [angle, 0, 0];
-              if (axis === "y") rotation = [0, angle, 0];
-              if (axis === "z") rotation = [0, 0, angle];
-
-              return (
-                <group key={`rotated-${x}-${y}-${z}`}>
-                  <group
-                    position={[-pivot[0], -pivot[1], -pivot[2]]}
-                    rotation={rotation}
-                  >
-                    <group position={pivot}>{cubie}</group>
-                  </group>
-                </group>
-              );
-            }
-
-            return cubie;
-          })
-        )
-      )}
+      {/* Rotating layer */}
+      <group>
+        {/* Position at cube center */}
+        <group position={[1, 1, 1]}>
+          {/* Apply rotation */}
+          <group rotation={rotationVector}>
+            {/* Move back to original position */}
+            <group position={[-1, -1, -1]}>{rotatingCubies}</group>
+          </group>
+        </group>
+      </group>
     </group>
   );
 };
