@@ -123,7 +123,8 @@ const SceneContents: React.FC = () => {
           } else {
             chosenAxis = vertical;
             dragAmount = deltaY;
-            if (chosenAxis === "z" && Math.abs(dragStart.faceNormal.x) > 0.9) {
+            // Invert drag direction for vertical drags on the right face (x=2)
+            if (chosenAxis === "z" && dragStart.cubiePosition[0] === 2) {
               dragAmount = -dragAmount;
             }
           }
