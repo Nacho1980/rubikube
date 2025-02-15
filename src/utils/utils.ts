@@ -9,26 +9,51 @@ export const coordsToLinear = (row: number, col: number): number => {
   return row * 3 + col;
 };
 
-// Maps 3D coordinates (x, y, z) to the correct index for a given face.
-export const getFaceIndex = (
+// For rotation: Maps 3D coordinates (x, y, z) to the correct index for a given face.
+export const getRotationIndex = (
   x: number,
   y: number,
   z: number,
   face: keyof Faces
 ): number => {
   switch (face) {
-    case "F": // Front face
-      return coordsToLinear(2 - y, x);
-    case "R": // Right face
-      return coordsToLinear(2 - y, z);
-    case "B": // Back face
-      return coordsToLinear(2 - y, 2 - x); // Mirror x coordinate
-    case "L": // Left face
-      return coordsToLinear(2 - y, 2 - z); // Mirror z coordinate
-    case "U": // Up face
-      return coordsToLinear(z, x);
-    case "D": // Down face
-      return coordsToLinear(2 - z, x);
+    case "F": // Front face (x,y plane at z=2)
+      return coordsToLinear(2 - y, 2 - z); // Changed: use z for horizontal position
+    case "R": // Right face (y,z plane at x=2)
+      return coordsToLinear(2 - y, z); // Keep as is
+    case "B": // Back face (x,y plane at z=0)
+      return coordsToLinear(2 - y, x); // Changed: use x directly
+    case "L": // Left face (y,z plane at x=0)
+      return coordsToLinear(2 - y, 2 - z); // Changed: mirror z
+    case "U": // Up face (x,z plane at y=2)
+      return coordsToLinear(z, x); // Keep as is
+    case "D": // Down face (x,z plane at y=0)
+      return coordsToLinear(2 - z, x); // Keep as is
+    default:
+      return 0;
+  }
+};
+
+// For display: Maps 3D coordinates to face indices based on visual position
+export const getDisplayIndex = (
+  x: number,
+  y: number,
+  z: number,
+  face: keyof Faces
+): number => {
+  switch (face) {
+    case "F": // Front face (x,y plane at z=2)
+      return coordsToLinear(2 - y, x); // Original mapping for display
+    case "R": // Right face (y,z plane at x=2)
+      return coordsToLinear(2 - y, z); // Original mapping for display
+    case "B": // Back face (x,y plane at z=0)
+      return coordsToLinear(2 - y, 2 - x); // Original mapping for display
+    case "L": // Left face (y,z plane at x=0)
+      return coordsToLinear(2 - y, 2 - z); // Original mapping for display
+    case "U": // Up face (x,z plane at y=2)
+      return coordsToLinear(z, x); // Original mapping for display
+    case "D": // Down face (x,z plane at y=0)
+      return coordsToLinear(2 - z, x); // Original mapping for display
     default:
       return 0;
   }

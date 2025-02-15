@@ -1,7 +1,7 @@
 import React from "react";
 import { BLACK } from "../constants";
 import { Faces } from "../types";
-import { getFaceIndex } from "../utils/utils";
+import { getDisplayIndex } from "../utils/utils";
 
 interface CubieProps {
   position: [number, number, number];
@@ -30,7 +30,12 @@ const Cubie: React.FC<CubieProps> = ({
   // and read that sticker from faces[face].
   const getColorForFace = (face: keyof Faces) => {
     if (!isExternalFace[face]) return BLACK;
-    const index = getFaceIndex(x, y, z, face);
+    const index = getDisplayIndex(x, y, z, face);
+    if (face === "F" && z === 2 && y === 0) {
+      //console.log("Index for x, y, z: ", x, y, z, index);
+      //console.log("color for x, y: ", x, y, faces[face][index]);
+      //console.log("Front faces:", faces.F);
+    }
     return faces[face][index] || BLACK;
   };
 

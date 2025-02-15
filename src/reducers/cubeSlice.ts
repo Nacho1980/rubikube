@@ -2,7 +2,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { BLUE, GREEN, ORANGE, RED, WHITE, YELLOW } from "../constants";
 import { Faces } from "../types";
-import { coordsToLinear, getFaceIndex, linearToCoords } from "../utils/utils";
+import {
+  coordsToLinear,
+  getRotationIndex,
+  linearToCoords,
+} from "../utils/utils";
 
 export interface CubeState {
   faces: Faces; // Each face is a 9-element array of color strings
@@ -60,10 +64,10 @@ const rotateX = (faces: Faces, layer: number, direction: 1 | -1) => {
   // We'll iterate y=0..2, z=0..2 in a ring-like pattern.
   for (let y = 0; y < 3; y++) {
     for (let z = 0; z < 3; z++) {
-      const uIndex = getFaceIndex(layer, y, z, "U");
-      const fIndex = getFaceIndex(layer, y, z, "F");
-      const dIndex = getFaceIndex(layer, y, z, "D");
-      const bIndex = getFaceIndex(layer, y, z, "B");
+      const uIndex = getRotationIndex(layer, y, z, "U");
+      const fIndex = getRotationIndex(layer, y, z, "F");
+      const dIndex = getRotationIndex(layer, y, z, "D");
+      const bIndex = getRotationIndex(layer, y, z, "B");
 
       if (direction === 1) {
         // Right-face "clockwise" from the outside means: U→F, F→D, D→B, B→U
@@ -105,14 +109,16 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
   const tempR = [...faces.R];
   const tempB = [...faces.B];
   const tempL = [...faces.L];
+  //console.log("F before rotate Y:", faces.F);
+  //console.log("R before rotate Y:", faces.R);
 
   // For y=layer, we iterate x=0..2, z=0..2
   for (let x = 0; x < 3; x++) {
     for (let z = 0; z < 3; z++) {
-      const fIndex = getFaceIndex(x, layer, z, "F");
-      const rIndex = getFaceIndex(x, layer, z, "R");
-      const bIndex = getFaceIndex(x, layer, z, "B");
-      const lIndex = getFaceIndex(x, layer, z, "L");
+      const fIndex = getRotationIndex(x, layer, z, "F");
+      const rIndex = getRotationIndex(x, layer, z, "R");
+      const bIndex = getRotationIndex(x, layer, z, "B");
+      const lIndex = getRotationIndex(x, layer, z, "L");
 
       if (direction === 1) {
         // Up-face "clockwise" from top means: F→R, R→B, B→L, L→F
@@ -138,6 +144,8 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
     // Down face => rotate D by -direction
     faces.D = rotateMatrix(faces.D, -direction as 1 | -1);
   }
+  console.log("After rotateY F:", faces.F);
+  console.log("After R:", faces.R);
 };
 
 /* ------------------------------------------------------------------
@@ -150,47 +158,39 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
    we want: Up→Right→Down→Left→Up, specifically the row/column that touches z=2.
 ------------------------------------------------------------------ */
 const rotateZ = (faces: Faces, layer: number, direction: 1 | -1) => {
-  const tempU = new Array<string>(3);
-  const tempR = new Array<string>(3);
-  const tempD = new Array<string>(3);
-  const tempL = new Array<string>(3);
+  // Make full copies of affected faces
+  const tempU = [...faces.U];
+  const tempR = [...faces.R];
+  const tempD = [...faces.D];
+  const tempL = [...faces.L];
 
-  // Extract the stickers from the affected faces
+  // We'll iterate over each position in the ring
   for (let i = 0; i < 3; i++) {
-    tempU[i] = faces.U[getFaceIndex(i, 2, layer, "U")]; // U face
-    tempR[i] = faces.R[getFaceIndex(2, i, layer, "R")]; // R face
-    tempD[i] = faces.D[getFaceIndex(2 - i, 0, layer, "D")]; // D face
-    tempL[i] = faces.L[getFaceIndex(0, 2 - i, layer, "L")]; // L face
-    console.log("tempU:", tempU);
-    console.log("tempR:", tempR);
-    console.log("tempD:", tempD);
-    console.log("tempL:", tempL);
-  }
+    // Get indices for the current position in each face
+    const uIndex = getRotationIndex(i, 2, layer, "U"); // Top edge
+    const rIndex = getRotationIndex(2, 2 - i, layer, "R"); // Right edge
+    const dIndex = getRotationIndex(2 - i, 0, layer, "D"); // Bottom edge
+    const lIndex = getRotationIndex(0, i, layer, "L"); // Left edge
 
-  if (direction === 1) {
-    // Clockwise ring: U → R → D → L → U
-    for (let i = 0; i < 3; i++) {
-      faces.U[getFaceIndex(i, 2, layer, "U")] = tempL[i];
-      faces.R[getFaceIndex(2, i, layer, "R")] = tempU[i];
-      faces.D[getFaceIndex(2 - i, 0, layer, "D")] = tempR[i];
-      faces.L[getFaceIndex(0, 2 - i, layer, "L")] = tempD[i];
-    }
-  } else {
-    // Counterclockwise ring: U → L → D → R → U
-    for (let i = 0; i < 3; i++) {
-      faces.U[getFaceIndex(i, 2, layer, "U")] = tempR[i];
-      faces.R[getFaceIndex(2, i, layer, "R")] = tempD[i];
-      faces.D[getFaceIndex(2 - i, 0, layer, "D")] = tempL[i];
-      faces.L[getFaceIndex(0, 2 - i, layer, "L")] = tempU[i];
+    if (direction === 1) {
+      // Clockwise: U → R → D → L → U
+      faces.R[rIndex] = tempU[uIndex];
+      faces.D[dIndex] = tempR[rIndex];
+      faces.L[lIndex] = tempD[dIndex];
+      faces.U[uIndex] = tempL[lIndex];
+    } else {
+      // Counterclockwise: U → L → D → R → U
+      faces.L[lIndex] = tempU[uIndex];
+      faces.D[dIndex] = tempL[lIndex];
+      faces.R[rIndex] = tempD[dIndex];
+      faces.U[uIndex] = tempR[rIndex];
     }
   }
 
   // Rotate the front or back face if it's an outer slice
   if (layer === 2) {
-    // Front face rotates in the same direction
     faces.F = rotateMatrix(faces.F, direction);
   } else if (layer === 0) {
-    // Back face rotates in the opposite direction to match real Rubik’s behavior
     faces.B = rotateMatrix(faces.B, -direction as 1 | -1);
   }
 };
@@ -218,16 +218,16 @@ export const cubeSlice = createSlice({
         R: [...state.faces.R],
       };
 
-      //console.log("Before rotation:", JSON.stringify(newFaces, null, 2));
+      ////console.log("Before rotation:", JSON.stringify(newFaces, null, 2));
       if (axis === "x") {
         rotateX(newFaces, layer, direction);
-        //  console.log("After X rotation:", JSON.stringify(newFaces, null, 2));
+        //  //console.log("After X rotation:", JSON.stringify(newFaces, null, 2));
       } else if (axis === "y") {
         rotateY(newFaces, layer, direction);
-        //  console.log("After Y rotation:", JSON.stringify(newFaces, null, 2));
+        //  //console.log("After Y rotation:", JSON.stringify(newFaces, null, 2));
       } else {
-        rotateZ(newFaces, layer, (-1 * direction) as 1 | -1);
-        //  console.log("After Z rotation:", JSON.stringify(newFaces, null, 2));
+        rotateZ(newFaces, layer, -direction as 1 | -1);
+        //  //console.log("After Z rotation:", JSON.stringify(newFaces, null, 2));
       }
 
       state.faces = newFaces;
