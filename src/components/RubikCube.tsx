@@ -3,12 +3,13 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import Cubie from "./Cubie";
 
+// The size of each dimension in our 3x3x3 cube
 const cubeSize = 3;
 
 export interface HighlightedLayer {
   axis: "x" | "y" | "z";
-  layer: number; // 0,1,2
-  direction: 1 | -1; // +1 or -1
+  layer: number; // which slice (0..2)
+  direction: 1 | -1; // clockwise or counterclockwise
 }
 
 interface RubikCubeProps {
@@ -20,18 +21,20 @@ const RubikCube: React.FC<RubikCubeProps> = ({
   highlightedLayer = null,
   rotationProgress = 0,
 }) => {
+  // Get the 6 faces from Redux. Each face is just an array of 9 stickers.
   const faces = useSelector((state: RootState) => state.cube.faces);
 
   const staticCubies: JSX.Element[] = [];
   const rotatingCubies: JSX.Element[] = [];
 
-  // Loop over grid coordinates 0..2
+  // Build the 27 cubies (x,y,z from 0..2)
   for (let x = 0; x < cubeSize; x++) {
     for (let y = 0; y < cubeSize; y++) {
       for (let z = 0; z < cubeSize; z++) {
         const key = `cubie-${x}-${y}-${z}`;
         let inRotatingLayer = false;
 
+        // If there's an active highlighted layer, see if (x,y,z) is in it
         if (highlightedLayer) {
           const { axis, layer } = highlightedLayer;
           if (
@@ -52,40 +55,41 @@ const RubikCube: React.FC<RubikCubeProps> = ({
           />
         );
 
+        // We separate rotating cubies into a separate group for animation
         if (inRotatingLayer) rotatingCubies.push(cubieEl);
         else staticCubies.push(cubieEl);
       }
     }
   }
 
-  // Center the entire cube by moving it back by half its size
+  // Shift the entire cube so that its center is at (0,0,0)
   const centerOffset: [number, number, number] = [-1, -1, -1];
 
-  // If no layer is rotating, render the entire centered cube
+  // If no layer is rotating, just render all cubies in a single group
   if (!highlightedLayer) {
     return <group position={centerOffset}>{staticCubies}</group>;
   }
 
-  // Calculate rotation for the active layer
-  const { axis, layer, direction } = highlightedLayer;
+  // We do have a highlighted layer, so we animate that slice
+  const { axis, direction } = highlightedLayer;
   const angle = direction * rotationProgress * (Math.PI / 2);
 
-  // Set up rotation axis
+  // Convert axis name to Euler angles
   const rotationVector: [number, number, number] =
     axis === "x" ? [angle, 0, 0] : axis === "y" ? [0, angle, 0] : [0, 0, angle];
 
   return (
     <group position={centerOffset}>
-      {/* Static cubies */}
+      {/* The static cubies (all layers not currently rotating) */}
       {staticCubies}
 
-      {/* Rotating layer */}
+      {/* The rotating slice, pivoted around the center of the cube */}
       <group>
-        {/* Position at cube center */}
+        {/* Move pivot to cube center (which is +1 in x,y,z from the corner) */}
         <group position={[1, 1, 1]}>
-          {/* Apply rotation */}
+          {/* Apply the rotation to the slice */}
           <group rotation={rotationVector}>
-            {/* Move back to original position */}
+            {/* Move the slice back so the cubies appear in correct spots */}
             <group position={[-1, -1, -1]}>{rotatingCubies}</group>
           </group>
         </group>

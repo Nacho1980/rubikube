@@ -1,22 +1,11 @@
 import React from "react";
 import { BLACK } from "../constants";
-
-interface FaceData {
-  stickers: string[];
-}
-interface Faces {
-  U: FaceData;
-  D: FaceData;
-  F: FaceData;
-  B: FaceData;
-  L: FaceData;
-  R: FaceData;
-}
+import { Faces } from "../types";
+import { getFaceIndex } from "../utils/utils";
 
 interface CubieProps {
-  // Grid coordinates in [0, 1, 2]
   position: [number, number, number];
-  faces: Faces;
+  faces: Faces; // Each face is just string[9], no orientation
   highlighted?: boolean;
 }
 
@@ -27,7 +16,7 @@ const Cubie: React.FC<CubieProps> = ({
 }) => {
   const [x, y, z] = position;
 
-  // Determine which faces are external (using grid coords)
+  // We only show the sticker color if this cubie is on that face's outer side
   const isExternalFace = {
     U: y === 2,
     D: y === 0,
@@ -37,25 +26,21 @@ const Cubie: React.FC<CubieProps> = ({
     R: x === 2,
   };
 
-  // Use the same indexing as in your reducer:
+  // For each face, find which sticker index corresponds to (x,y,z),
+  // and read that sticker from faces[face].
   const getColorForFace = (face: keyof Faces) => {
     if (!isExternalFace[face]) return BLACK;
-    const indexMap = {
-      U: x + 3 * (2 - z),
-      D: x + 3 * z,
-      F: x + 3 * (2 - y),
-      B: 2 - x + 3 * (2 - y),
-      L: z + 3 * (2 - y),
-      R: 2 - z + 3 * (2 - y),
-    } as const;
-    return faces[face].stickers[indexMap[face]] || BLACK;
+    const index = getFaceIndex(x, y, z, face);
+    return faces[face][index] || BLACK;
   };
 
+  // The order of materials on a boxGeometry is: +X, -X, +Y, -Y, +Z, -Z.
+  // We'll map them to R, L, U, D, F, B for consistency.
   const faceOrder: (keyof Faces)[] = ["R", "L", "U", "D", "F", "B"];
 
   return (
-    // Use grid coordinates directly.
     <group position={[x, y, z]}>
+      {/* The main cubie geometry */}
       <mesh userData={{ position: [x, y, z] }}>
         <boxGeometry args={[0.98, 0.98, 0.98]} />
         {faceOrder.map((face, i) => {
@@ -73,6 +58,8 @@ const Cubie: React.FC<CubieProps> = ({
           );
         })}
       </mesh>
+
+      {/* Optional yellow wireframe if "highlighted" */}
       {highlighted && (
         <mesh>
           <boxGeometry args={[1.02, 1.02, 1.02]} />

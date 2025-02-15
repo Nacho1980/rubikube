@@ -5,17 +5,16 @@ export interface CubeFaceGrid {
   stickers: string[]; // should have length 9
 }
 
-// The cube has six faces identified by standard notation
-export interface CubeFaces {
-  U: CubeFaceGrid; // Up
-  D: CubeFaceGrid; // Down
-  F: CubeFaceGrid; // Front
-  B: CubeFaceGrid; // Back
-  L: CubeFaceGrid; // Left
-  R: CubeFaceGrid; // Right
+export interface FaceData {
+  stickers: string[];
+  orientation: number; // 0, 90, 180, 270
 }
 
-// The overall cube state
-export interface CubeState {
-  faces: CubeFaces;
+export interface Faces {
+  U: string[];
+  D: string[];
+  F: string[];
+  B: string[];
+  L: string[];
+  R: string[];
 }
