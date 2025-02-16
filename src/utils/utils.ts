@@ -10,6 +10,29 @@ export const coordsToLinear = (row: number, col: number): number => {
 };
 
 // For rotation: Maps 3D coordinates (x, y, z) to the correct index for a given face.
+/* export const getRotationIndex = (
+  x: number,
+  y: number,
+  z: number,
+  face: keyof Faces
+): number => {
+  switch (face) {
+    case "F": // Front face
+      return coordsToLinear(2 - y, x); // Changed: use z for horizontal position
+    case "R": // Right face (y,z plane at x=2)
+      return coordsToLinear(2 - y, z); // Keep as is
+    case "B": // Back face (x,y plane at z=0)
+      return coordsToLinear(2 - y, 2 - x); // Changed: use x directly
+    case "L": // Left face (y,z plane at x=0)
+      return coordsToLinear(2 - y, 2 - z); // Changed: mirror z
+    case "U": // Up face (x,z plane at y=2)
+      return coordsToLinear(z, x); // Keep as is
+    case "D": // Down face (x,z plane at y=0)
+      return coordsToLinear(2 - z, x); // Keep as is
+    default:
+      return 0;
+  }
+}; */
 export const getRotationIndex = (
   x: number,
   y: number,
@@ -17,18 +40,20 @@ export const getRotationIndex = (
   face: keyof Faces
 ): number => {
   switch (face) {
-    case "F": // Front face (x,y plane at z=2)
-      return coordsToLinear(2 - y, 2 - z); // Changed: use z for horizontal position
+    case "F": // Front face
+      return y === 0
+        ? coordsToLinear(2, x) // For bottom layer Y rotation
+        : coordsToLinear(2 - y, x);
     case "R": // Right face (y,z plane at x=2)
-      return coordsToLinear(2 - y, z); // Keep as is
+      return coordsToLinear(2 - y, z);
     case "B": // Back face (x,y plane at z=0)
-      return coordsToLinear(2 - y, x); // Changed: use x directly
+      return coordsToLinear(2 - y, 2 - x);
     case "L": // Left face (y,z plane at x=0)
-      return coordsToLinear(2 - y, 2 - z); // Changed: mirror z
+      return coordsToLinear(2 - y, 2 - z);
     case "U": // Up face (x,z plane at y=2)
-      return coordsToLinear(z, x); // Keep as is
+      return coordsToLinear(z, x);
     case "D": // Down face (x,z plane at y=0)
-      return coordsToLinear(2 - z, x); // Keep as is
+      return coordsToLinear(2 - z, x);
     default:
       return 0;
   }

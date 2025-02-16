@@ -54,44 +54,46 @@ const rotateMatrix = (stickers: string[], direction: 1 | -1): string[] => {
    we want: Up→Front→Down→Back→Up.  The code below does that ring for each row/col.
 ------------------------------------------------------------------ */
 const rotateX = (faces: Faces, layer: number, direction: 1 | -1) => {
-  // Make temp copies
   const tempU = [...faces.U];
   const tempF = [...faces.F];
   const tempD = [...faces.D];
   const tempB = [...faces.B];
 
-  // We swap all squares where x=layer, i.e. (layer, y, z).
-  // We'll iterate y=0..2, z=0..2 in a ring-like pattern.
   for (let y = 0; y < 3; y++) {
-    for (let z = 0; z < 3; z++) {
-      const uIndex = getRotationIndex(layer, y, z, "U");
-      const fIndex = getRotationIndex(layer, y, z, "F");
-      const dIndex = getRotationIndex(layer, y, z, "D");
-      const bIndex = getRotationIndex(layer, y, z, "B");
+    // The column for the Front face that has x=layer is simply:
+    //    frontIndex = row: y, column: layer  =>  3*y + layer
+    // But be careful with "Front" vs "Back" orientation (reversal).
+    const uIndex = 3 * y + layer; // column 'layer' on Up
+    const fIndex = 3 * y + layer; // column 'layer' on Front
+    const dIndex = 3 * y + layer; // column 'layer' on Down
+    const bIndex = 3 * (2 - y) + (2 - layer);
+    // For the Back face, we want x=layer but reversed horizontally:
+    //   left column if layer=0, right column if layer=2, etc.
+    // So if x=layer, that column is (2 - layer) on the Back face.
+    // Also note we do (2 - y) for the row to keep consistent orientation.
 
-      if (direction === 1) {
-        // Right-face "clockwise" from the outside means: U→F, F→D, D→B, B→U
-        faces.F[fIndex] = tempU[uIndex];
-        faces.D[dIndex] = tempF[fIndex];
-        faces.B[bIndex] = tempD[dIndex];
-        faces.U[uIndex] = tempB[bIndex];
-      } else {
-        // Opposite direction
-        faces.U[uIndex] = tempF[fIndex];
-        faces.F[fIndex] = tempD[dIndex];
-        faces.D[dIndex] = tempB[bIndex];
-        faces.B[bIndex] = tempU[uIndex];
-      }
+    if (direction === 1) {
+      // Clockwise: U -> F -> D -> B -> U
+      faces.F[fIndex] = tempU[uIndex];
+      faces.D[dIndex] = tempF[fIndex];
+      faces.B[bIndex] = tempD[dIndex];
+      faces.U[uIndex] = tempB[bIndex];
+    } else {
+      // Counterclockwise: U -> B -> D -> F -> U
+      faces.B[bIndex] = tempU[uIndex];
+      faces.D[dIndex] = tempB[bIndex];
+      faces.F[fIndex] = tempD[dIndex];
+      faces.U[uIndex] = tempF[fIndex];
     }
   }
 
-  // If it's the left or right outer slice, rotate that face's 3×3 array
-  if (layer === 0) {
-    // Left face => rotate L by -direction (mirrors the perspective)
-    faces.L = rotateMatrix(faces.L, -direction as 1 | -1);
-  } else if (layer === 2) {
-    // Right face => rotate R by +direction
+  // Now rotate the face itself if it's an outer layer
+  if (layer === 2) {
+    // Right face
     faces.R = rotateMatrix(faces.R, direction);
+  } else if (layer === 0) {
+    // Left face
+    faces.L = rotateMatrix(faces.L, -direction as 1 | -1);
   }
 };
 
@@ -109,45 +111,83 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
   const tempR = [...faces.R];
   const tempB = [...faces.B];
   const tempL = [...faces.L];
-  //console.log("F before rotate Y:", faces.F);
-  //console.log("R before rotate Y:", faces.R);
 
-  // For y=layer, we iterate x=0..2, z=0..2
-  for (let x = 0; x < 3; x++) {
-    for (let z = 0; z < 3; z++) {
-      const fIndex = getRotationIndex(x, layer, z, "F");
-      const rIndex = getRotationIndex(x, layer, z, "R");
-      const bIndex = getRotationIndex(x, layer, z, "B");
-      const lIndex = getRotationIndex(x, layer, z, "L");
+  if (layer === 2) {
+    // Indices for the top row of each face
+    const topIndices = [0, 1, 2];
+    const reverseIndices = [2, 1, 0];
 
-      if (direction === 1) {
-        // Up-face "clockwise" from top means: F→R, R→B, B→L, L→F
-        faces.R[rIndex] = tempF[fIndex];
-        faces.B[bIndex] = tempR[rIndex];
-        faces.L[lIndex] = tempB[bIndex];
-        faces.F[fIndex] = tempL[lIndex];
-      } else {
-        // Reverse ring
-        faces.F[fIndex] = tempR[rIndex];
-        faces.R[rIndex] = tempB[bIndex];
-        faces.B[bIndex] = tempL[lIndex];
-        faces.L[lIndex] = tempF[fIndex];
+    if (direction === 1) {
+      // Clockwise when looking DOWN at the top face
+      for (let i = 0; i < 3; i++) {
+        faces.R[topIndices[i]] = tempF[reverseIndices[i]];
+        faces.B[topIndices[i]] = tempR[reverseIndices[i]];
+        faces.L[topIndices[i]] = tempB[reverseIndices[i]];
+        faces.F[topIndices[i]] = tempL[reverseIndices[i]];
+      }
+    } else {
+      // Counterclockwise
+      for (let i = 0; i < 3; i++) {
+        faces.F[topIndices[i]] = tempR[reverseIndices[i]];
+        faces.R[topIndices[i]] = tempB[reverseIndices[i]];
+        faces.B[topIndices[i]] = tempL[reverseIndices[i]];
+        faces.L[topIndices[i]] = tempF[reverseIndices[i]];
+      }
+    }
+  } else if (layer === 0) {
+    // Get the indices for the bottom row of each face
+    const bottomIndices = [6, 7, 8]; // indices for bottom row
+    const reverseIndices = [8, 7, 6]; // reversed order for proper alignment
+
+    if (direction === 1) {
+      // Clockwise rotation when looking down
+      for (let i = 0; i < 3; i++) {
+        faces.R[bottomIndices[i]] = tempF[reverseIndices[i]];
+        faces.B[bottomIndices[i]] = tempR[reverseIndices[i]];
+        faces.L[bottomIndices[i]] = tempB[reverseIndices[i]];
+        faces.F[bottomIndices[i]] = tempL[reverseIndices[i]];
+      }
+    } else {
+      // Counter-clockwise rotation when looking down
+      for (let i = 0; i < 3; i++) {
+        faces.F[bottomIndices[i]] = tempR[reverseIndices[i]];
+        faces.R[bottomIndices[i]] = tempB[reverseIndices[i]];
+        faces.B[bottomIndices[i]] = tempL[reverseIndices[i]];
+        faces.L[bottomIndices[i]] = tempF[reverseIndices[i]];
+      }
+    }
+  } else {
+    // Original rotation logic for other layers
+    for (let x = 0; x < 3; x++) {
+      for (let z = 0; z < 3; z++) {
+        const fIndex = getRotationIndex(x, layer, z, "F");
+        const rIndex = getRotationIndex(x, layer, z, "R");
+        const bIndex = getRotationIndex(x, layer, z, "B");
+        const lIndex = getRotationIndex(x, layer, z, "L");
+
+        if (direction === 1) {
+          faces.R[rIndex] = tempF[fIndex];
+          faces.B[bIndex] = tempR[rIndex];
+          faces.L[lIndex] = tempB[bIndex];
+          faces.F[fIndex] = tempL[lIndex];
+        } else {
+          faces.F[fIndex] = tempR[rIndex];
+          faces.R[rIndex] = tempB[bIndex];
+          faces.B[bIndex] = tempL[lIndex];
+          faces.L[lIndex] = tempF[fIndex];
+        }
       }
     }
   }
 
   // Rotate the Up or Down face if it's an outer slice
   if (layer === 2) {
-    // Up face => rotate U by +direction
-    faces.U = rotateMatrix(faces.U, direction);
+    //faces.U = rotateMatrix(faces.U, direction);
+    faces.U = rotateMatrix(faces.U, -direction as 1 | -1);
   } else if (layer === 0) {
-    // Down face => rotate D by -direction
     faces.D = rotateMatrix(faces.D, -direction as 1 | -1);
   }
-  console.log("After rotateY F:", faces.F);
-  console.log("After R:", faces.R);
 };
-
 /* ------------------------------------------------------------------
    Z-AXIS ROTATION (layer = 0..2)
 
@@ -218,16 +258,12 @@ export const cubeSlice = createSlice({
         R: [...state.faces.R],
       };
 
-      ////console.log("Before rotation:", JSON.stringify(newFaces, null, 2));
       if (axis === "x") {
         rotateX(newFaces, layer, direction);
-        //  //console.log("After X rotation:", JSON.stringify(newFaces, null, 2));
       } else if (axis === "y") {
         rotateY(newFaces, layer, direction);
-        //  //console.log("After Y rotation:", JSON.stringify(newFaces, null, 2));
       } else {
         rotateZ(newFaces, layer, -direction as 1 | -1);
-        //  //console.log("After Z rotation:", JSON.stringify(newFaces, null, 2));
       }
 
       state.faces = newFaces;
