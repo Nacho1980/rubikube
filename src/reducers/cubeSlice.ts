@@ -158,7 +158,7 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
     }
   } else {
     // Original rotation logic for other layers
-    for (let x = 0; x < 3; x++) {
+    /* for (let x = 0; x < 3; x++) {
       for (let z = 0; z < 3; z++) {
         const fIndex = getRotationIndex(x, layer, z, "F");
         const rIndex = getRotationIndex(x, layer, z, "R");
@@ -176,6 +176,30 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
           faces.B[bIndex] = tempL[lIndex];
           faces.L[lIndex] = tempF[fIndex];
         }
+      }
+    } */
+    for (let t = 0; t < 3; t++) {
+      // Front face: row 1, col = 2 - t
+      const fIndex = coordsToLinear(1, 2 - t);
+      // Right face: row 1, col = t
+      const rIndex = coordsToLinear(1, t);
+      // Back face: For the back face mapping (B: coordsToLinear(2 - y, 2 - x)),
+      // we want x to correspond to t so that B’s col = 2 - t.
+      const bIndex = coordsToLinear(1, 2 - t);
+      // Left face: For L (mapping: coordsToLinear(2 - y, 2 - z)),
+      // we want z to correspond to 2 - t so that L’s col = 2 - (2 - t) = t.
+      const lIndex = coordsToLinear(1, t);
+
+      if (direction === 1) {
+        faces.R[rIndex] = tempF[fIndex];
+        faces.B[bIndex] = tempR[rIndex];
+        faces.L[lIndex] = tempB[bIndex];
+        faces.F[fIndex] = tempL[lIndex];
+      } else {
+        faces.F[fIndex] = tempR[rIndex];
+        faces.R[rIndex] = tempB[bIndex];
+        faces.B[bIndex] = tempL[lIndex];
+        faces.L[lIndex] = tempF[fIndex];
       }
     }
   }

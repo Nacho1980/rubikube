@@ -43,6 +43,8 @@ export const getRotationIndex = (
     case "F": // Front face
       return y === 0
         ? coordsToLinear(2, x) // For bottom layer Y rotation
+        : y === 1
+        ? coordsToLinear(2 - y, 2 - x) // reverse x for middle layer rotations
         : coordsToLinear(2 - y, x);
     case "R": // Right face (y,z plane at x=2)
       return coordsToLinear(2 - y, z);
