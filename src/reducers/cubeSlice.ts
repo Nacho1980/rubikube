@@ -1,7 +1,16 @@
 // cubeSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { BLUE, GREEN, ORANGE, RED, WHITE, YELLOW } from "../constants";
-import { Faces } from "../types";
+import {
+  BLUE,
+  GREEN,
+  ORANGE,
+  RED,
+  SHUFFLE_MOVES,
+  WHITE,
+  YELLOW,
+} from "../constants";
+import { Faces, Move } from "../types";
+import solveCube from "../utils/RubikCubeSolver";
 import {
   coordsToLinear,
   getRotationIndex,
@@ -10,6 +19,8 @@ import {
 
 export interface CubeState {
   faces: Faces; // Each face is a 9-element array of color strings
+  moves: Move[];
+  pendingMoves: Move[]; // For animating moves
 }
 
 // Initial faces: 3×3 of each color
@@ -22,6 +33,8 @@ const initialState: CubeState = {
     L: Array(9).fill(ORANGE),
     R: Array(9).fill(RED),
   },
+  moves: [],
+  pendingMoves: [],
 };
 
 /**
@@ -73,13 +86,13 @@ const rotateX = (faces: Faces, layer: number, direction: 1 | -1) => {
     // Also note we do (2 - y) for the row to keep consistent orientation.
 
     if (direction === 1) {
-      // Clockwise: U -> F -> D -> B -> U
+      // Counterclockwise: U -> F -> D -> B -> U
       faces.F[fIndex] = tempU[uIndex];
       faces.D[dIndex] = tempF[fIndex];
       faces.B[bIndex] = tempD[dIndex];
       faces.U[uIndex] = tempB[bIndex];
     } else {
-      // Counterclockwise: U -> B -> D -> F -> U
+      // clockwise: U -> B -> D -> F -> U
       faces.B[bIndex] = tempU[uIndex];
       faces.D[dIndex] = tempB[bIndex];
       faces.F[fIndex] = tempD[dIndex];
@@ -118,7 +131,7 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
     const reverseIndices = [2, 1, 0];
 
     if (direction === 1) {
-      // Clockwise when looking DOWN at the top face
+      // Counterclockwise when looking DOWN at the top face
       for (let i = 0; i < 3; i++) {
         faces.R[topIndices[i]] = tempF[reverseIndices[i]];
         faces.B[topIndices[i]] = tempR[reverseIndices[i]];
@@ -126,7 +139,7 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
         faces.F[topIndices[i]] = tempL[reverseIndices[i]];
       }
     } else {
-      // Counterclockwise
+      // clockwise
       for (let i = 0; i < 3; i++) {
         faces.F[topIndices[i]] = tempR[reverseIndices[i]];
         faces.R[topIndices[i]] = tempB[reverseIndices[i]];
@@ -158,26 +171,6 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
     }
   } else {
     // Original rotation logic for other layers
-    /* for (let x = 0; x < 3; x++) {
-      for (let z = 0; z < 3; z++) {
-        const fIndex = getRotationIndex(x, layer, z, "F");
-        const rIndex = getRotationIndex(x, layer, z, "R");
-        const bIndex = getRotationIndex(x, layer, z, "B");
-        const lIndex = getRotationIndex(x, layer, z, "L");
-
-        if (direction === 1) {
-          faces.R[rIndex] = tempF[fIndex];
-          faces.B[bIndex] = tempR[rIndex];
-          faces.L[lIndex] = tempB[bIndex];
-          faces.F[fIndex] = tempL[lIndex];
-        } else {
-          faces.F[fIndex] = tempR[rIndex];
-          faces.R[rIndex] = tempB[bIndex];
-          faces.B[bIndex] = tempL[lIndex];
-          faces.L[lIndex] = tempF[fIndex];
-        }
-      }
-    } */
     for (let t = 0; t < 3; t++) {
       // Front face: row 1, col = 2 - t
       const fIndex = coordsToLinear(1, 2 - t);
@@ -206,7 +199,6 @@ const rotateY = (faces: Faces, layer: number, direction: 1 | -1) => {
 
   // Rotate the Up or Down face if it's an outer slice
   if (layer === 2) {
-    //faces.U = rotateMatrix(faces.U, direction);
     faces.U = rotateMatrix(faces.U, -direction as 1 | -1);
   } else if (layer === 0) {
     faces.D = rotateMatrix(faces.D, -direction as 1 | -1);
@@ -289,11 +281,50 @@ export const cubeSlice = createSlice({
       } else {
         rotateZ(newFaces, layer, -direction as 1 | -1);
       }
+      state.moves.push({ axis, layer, direction });
 
       state.faces = newFaces;
+    },
+    shuffle: (state, action: PayloadAction<void>) => {
+      // For example, perform 20 random moves
+      const axes: ("x" | "y" | "z")[] = ["x", "y", "z"];
+      for (let i = 0; i < SHUFFLE_MOVES; i++) {
+        const axis = axes[Math.floor(Math.random() * axes.length)];
+        const layer = Math.random() < 0.5 ? 0 : 2; // layer: 0 or 2
+        const direction = Math.random() < 0.5 ? 1 : -1;
+
+        // We modify the state's faces in place by calling the appropriate rotation.
+        if (axis === "x") {
+          rotateX(state.faces, layer, direction);
+        } else if (axis === "y") {
+          rotateY(state.faces, layer, direction);
+        } else {
+          // Note: Our rotateZ expects -direction for the third parameter.
+          rotateZ(state.faces, layer, -direction as 1 | -1);
+        }
+        state.moves.push({ axis, layer, direction });
+      }
+    },
+    solve: (state, action: PayloadAction<void>) => {
+      const moves: Move[] = solveCube(state.faces, state.moves);
+      state.pendingMoves = moves;
+    },
+    // An action to remove the first pending move after it is finished.
+    shiftPendingMove: (state) => {
+      state.pendingMoves.shift();
+    },
+    // (Optionally, you might add an action to clear the pending moves.)
+    clearPendingMoves: (state) => {
+      state.pendingMoves = [];
     },
   },
 });
 
-export const { rotateLayer } = cubeSlice.actions;
+export const {
+  rotateLayer,
+  shuffle,
+  solve,
+  shiftPendingMove,
+  clearPendingMoves,
+} = cubeSlice.actions;
 export default cubeSlice.reducer;

@@ -15,5 +15,5 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true
   },
-  "include": ["src", "src/types/global.d.ts"]
+  "include": ["src", "types"]
 }

@@ -1,9 +1,11 @@
 import { OrbitControls, OrthographicCamera } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import React, { useCallback, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
+import Cube from "cubejs";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import * as THREE from "three";
-import { rotateLayer } from "../reducers/cubeSlice";
+import { rotateLayer, shiftPendingMove } from "../reducers/cubeSlice";
+import { RootState } from "../store/store";
 import RubikCube from "./RubikCube";
 
 const ROTATION_SPEED = 0.02;
@@ -27,6 +29,11 @@ const SceneContents: React.FC = () => {
   } | null>(null);
   const [rotationProgress, setRotationProgress] = useState(0);
 
+  useEffect(() => {
+    // This takes 4-5 seconds on a modern computer
+    Cube.initSolver();
+  }, []);
+
   // We store the current rotation command in a ref so we can animate it frame by frame
   const rotationRef = useRef<{
     axis: "x" | "y" | "z";
@@ -34,10 +41,23 @@ const SceneContents: React.FC = () => {
     direction: 1 | -1;
   } | null>(null);
 
+  const pendingMoves = useSelector(
+    (state: RootState) => state.cube.pendingMoves
+  );
   const dispatch = useDispatch();
 
   // Animate the rotation
   useFrame(() => {
+    // If no move is currently being animated and we have pending moves,
+    // start the next move.
+    if (!rotationRef.current && pendingMoves.length > 0) {
+      // Start next move from the pending queue.
+      const nextMove = pendingMoves[0];
+      rotationRef.current = nextMove;
+      setHighlightedLayer(nextMove);
+      // Reset rotation progress to begin a new animation.
+      setRotationProgress(0);
+    }
     if (!rotationRef.current) return;
     setRotationProgress((prev) => {
       const newProgress = prev + ROTATION_SPEED;
@@ -46,6 +66,8 @@ const SceneContents: React.FC = () => {
         setTimeout(() => {
           if (rotationRef.current) {
             dispatch(rotateLayer(rotationRef.current));
+            // Remove the completed move from the pending queue.
+            dispatch(shiftPendingMove());
             rotationRef.current = null;
           }
           setHighlightedLayer(null);

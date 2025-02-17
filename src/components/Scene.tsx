@@ -4,16 +4,8 @@ import SceneContents from "./SceneContents";
 
 const Scene: React.FC = () => {
   return (
-    <div
-      style={{
-        width: "60vh",
-        height: "60vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Canvas style={{ width: "100%", height: "100%" }}>
+    <div className="scene-container">
+      <Canvas className="canvas">
         <SceneContents />
       </Canvas>
     </div>

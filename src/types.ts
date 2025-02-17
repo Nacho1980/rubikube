@@ -18,3 +18,9 @@ export interface Faces {
   L: string[];
   R: string[];
 }
+
+export interface Move {
+  axis: "x" | "y" | "z";
+  layer: number;
+  direction: 1 | -1;
+}
