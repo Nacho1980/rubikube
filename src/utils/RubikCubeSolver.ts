@@ -51,7 +51,7 @@ const cubeStateToString = (faces: Faces): string => {
 };
 
 /**
- * Converts a single move into a string that cubejs understands.
+ * Converts a single move into a string with standard notation that cubejs understands.
  * For example, { axis: "x", layer: 2, direction: 1 } becomes "R".
  * For a counterclockwise move, the direction is -1, and we append "'" to the face.
  * For example, { axis: "x", layer: 2, direction: -1 } becomes "R'".
@@ -96,14 +96,19 @@ const moveToString = (move: Move): string => {
   // and face + "'" for anticlockwise. We don't include a trailing "1".
   // direction 1 is ' for x
   const isPrime =
-    (direction === 1 && (face === "R" || face === "L")) ||
+    (direction === 1 && face === "R") ||
+    (direction === -1 && face === "L") ||
+    (direction === -1 && face === "M") ||
     (direction === 1 && face === "U") ||
     (direction === -1 && face === "D") ||
-    (direction === -1 && (face === "F" || face === "B"));
+    (direction === -1 && face === "E") ||
+    (direction === 1 && face === "F") ||
+    (direction === 1 && face === "S") ||
+    (direction === -1 && face === "B");
   return face + (isPrime ? "'" : "");
 };
 
-const moveArrayToString = (moves: Move[]): string => {
+export const rotationArrayToString = (moves: Move[]): string => {
   return moves.map(moveToString).join(" ");
 };
 
@@ -132,7 +137,7 @@ const parseSolution = (solution: string): Move[] => {
           move = { axis: "y", layer: 0, direction: isPrime ? -1 : 1 };
           break;
         case "F":
-          move = { axis: "z", layer: 2, direction: isPrime ? -1 : 1 };
+          move = { axis: "z", layer: 2, direction: isPrime ? 1 : -1 };
           break;
         case "B":
           move = { axis: "z", layer: 0, direction: isPrime ? -1 : 1 };
@@ -141,7 +146,7 @@ const parseSolution = (solution: string): Move[] => {
           move = { axis: "x", layer: 2, direction: isPrime ? 1 : -1 };
           break;
         case "L":
-          move = { axis: "x", layer: 0, direction: isPrime ? 1 : -1 };
+          move = { axis: "x", layer: 0, direction: isPrime ? -1 : 1 };
           break;
         default:
           throw new Error("Unknown face: " + face);
@@ -161,13 +166,13 @@ const parseSolution = (solution: string): Move[] => {
 /**
  * solveCube takes the current cube state and returns a sequence of moves.
  */
-const solveCube = (faces: Faces, initialMoves: Move[]): Move[] => {
+const solveCube = (initialMoves: Move[]): Move[] => {
   //const cubeString = cubeStateToString(faces);
 
   let solution: string = "";
   try {
     const cube = new Cube();
-    const alreadyMadeMoves = moveArrayToString(initialMoves);
+    const alreadyMadeMoves = rotationArrayToString(initialMoves);
     console.log("Already made moves:", alreadyMadeMoves);
     cube.move(alreadyMadeMoves);
     if (cube.isSolved()) {
