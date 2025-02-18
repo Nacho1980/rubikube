@@ -7,6 +7,23 @@ import { Faces, Move } from "../types";
 // You can do this on module load or in your app's initialization logic.
 Cube.initSolver();
 
+export const isCubeSolved = (faces: Faces): boolean => {
+  const expectedColors: Record<keyof Faces, string> = {
+    U: WHITE,
+    D: YELLOW,
+    F: GREEN,
+    B: BLUE,
+    L: ORANGE,
+    R: RED,
+  };
+
+  const faceKeys: (keyof Faces)[] = ["U", "D", "F", "B", "L", "R"];
+
+  return faceKeys.every((face) =>
+    faces[face].every((sticker) => sticker === expectedColors[face])
+  );
+};
+
 /**
  * Converts our internal cube state into a 54-character string that cubejs understands.
  * The cubejs solver expects the cube to be represented using the face letters:
@@ -109,6 +126,9 @@ const moveToString = (move: Move): string => {
 };
 
 export const rotationArrayToString = (moves: Move[]): string => {
+  if (moves.length === 0) {
+    return "";
+  }
   return moves.map(moveToString).join(" ");
 };
 
@@ -167,19 +187,15 @@ const parseSolution = (solution: string): Move[] => {
  * solveCube takes the current cube state and returns a sequence of moves.
  */
 const solveCube = (initialMoves: Move[]): Move[] => {
-  //const cubeString = cubeStateToString(faces);
-
   let solution: string = "";
   try {
     const cube = new Cube();
     const alreadyMadeMoves = rotationArrayToString(initialMoves);
-    console.log("Already made moves:", alreadyMadeMoves);
     cube.move(alreadyMadeMoves);
     if (cube.isSolved()) {
       console.log("Cube is already solved. No moves needed.");
     } else {
       solution = cube.solve();
-      console.log("Solution:", solution);
     }
   } catch (e) {
     console.error("Error while solving cube:", e);

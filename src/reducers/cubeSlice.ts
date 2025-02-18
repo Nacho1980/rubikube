@@ -10,7 +10,7 @@ import {
   YELLOW,
 } from "../constants";
 import { Faces, Move } from "../types";
-import solveCube, { rotationArrayToString } from "../utils/RubikCubeSolver";
+import solveCube, { isCubeSolved } from "../utils/RubikCubeSolver";
 import {
   coordsToLinear,
   getRotationIndex,
@@ -265,7 +265,6 @@ export const cubeSlice = createSlice({
         direction: 1 | -1;
       }>
     ) => {
-      console.log("before rotate: ", state.moves);
       const { axis, layer, direction } = action.payload;
       // Clone so we don't mutate state directly
       const newFaces: Faces = {
@@ -287,10 +286,14 @@ export const cubeSlice = createSlice({
       state.moves.push({ axis, layer, direction });
 
       state.faces = newFaces;
+      if (isCubeSolved(state.faces)) {
+        state.moves = [];
+        state.pendingMoves = [];
+      }
     },
     shuffle: (state, action: PayloadAction<void>) => {
       state.moves = [];
-      // For example, perform 20 random moves
+      // Perform SUFFLE_MOVES number of random moves
       const axes: ("x" | "y" | "z")[] = ["x", "y", "z"];
       for (let i = 0; i < SHUFFLE_MOVES; i++) {
         const axis = axes[Math.floor(Math.random() * axes.length)];
@@ -307,30 +310,25 @@ export const cubeSlice = createSlice({
         }
         state.moves.push({ axis, layer, direction });
       }
-      console.log("Shuffled cube: ", rotationArrayToString(state.moves));
     },
     solve: (state, action: PayloadAction<void>) => {
-      const moves: Move[] = solveCube(state.moves);
-      state.pendingMoves = moves;
-      state.moves = [];
-      console.log("After solve: ", state.moves);
+      if (!isCubeSolved(state.faces)) {
+        const moves: Move[] = solveCube(state.moves);
+        state.pendingMoves = moves;
+      } else {
+        console.log("Cube is already solved!");
+      }
     },
     // An action to remove the first pending move after it is finished.
     shiftPendingMove: (state) => {
       state.pendingMoves.shift();
     },
-    // (Optionally, you might add an action to clear the pending moves.)
-    clearPendingMoves: (state) => {
-      state.pendingMoves = [];
+    clearMoves: (state) => {
+      state.moves = [];
     },
   },
 });
 
-export const {
-  rotateLayer,
-  shuffle,
-  solve,
-  shiftPendingMove,
-  clearPendingMoves,
-} = cubeSlice.actions;
+export const { rotateLayer, shuffle, solve, shiftPendingMove, clearMoves } =
+  cubeSlice.actions;
 export default cubeSlice.reducer;

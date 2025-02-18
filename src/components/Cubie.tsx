@@ -1,3 +1,4 @@
+import { Edges } from "@react-three/drei";
 import React from "react";
 import { BLACK } from "../constants";
 import { Faces } from "../types";
@@ -57,6 +58,8 @@ const Cubie: React.FC<CubieProps> = ({
             />
           );
         })}
+        {/* Add black edges around the cubie */}
+        <Edges scale={1} threshold={15} color={BLACK} />
       </mesh>
 
       {/* Optional yellow wireframe if "highlighted" */}
