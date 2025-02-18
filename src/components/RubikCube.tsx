@@ -1,8 +1,8 @@
-import React from "react";
+import React, { ReactNode } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import Cubie from "./Cubie";
-
+// type ThreeElement = THREE.Object3D;
 // The size of each dimension in our 3x3x3 cube
 const cubeSize = 3;
 
@@ -24,8 +24,8 @@ const RubikCube: React.FC<RubikCubeProps> = ({
   // Get the 6 faces from Redux. Each face is just an array of 9 stickers.
   const faces = useSelector((state: RootState) => state.cube.faces);
 
-  const staticCubies: JSX.Element[] = [];
-  const rotatingCubies: JSX.Element[] = [];
+  const staticCubies: ReactNode[] = [];
+  const rotatingCubies: ReactNode[] = [];
 
   // Build the 27 cubies (x,y,z from 0..2)
   for (let x = 0; x < cubeSize; x++) {

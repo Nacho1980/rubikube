@@ -291,7 +291,7 @@ export const cubeSlice = createSlice({
         state.pendingMoves = [];
       }
     },
-    shuffle: (state, action: PayloadAction<void>) => {
+    shuffle: (state) => {
       state.moves = [];
       // Perform SUFFLE_MOVES number of random moves
       const axes: ("x" | "y" | "z")[] = ["x", "y", "z"];
@@ -311,7 +311,7 @@ export const cubeSlice = createSlice({
         state.moves.push({ axis, layer, direction });
       }
     },
-    solve: (state, action: PayloadAction<void>) => {
+    solve: (state) => {
       if (!isCubeSolved(state.faces)) {
         const moves: Move[] = solveCube(state.moves);
         state.pendingMoves = moves;

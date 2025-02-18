@@ -25,49 +25,6 @@ export const isCubeSolved = (faces: Faces): boolean => {
 };
 
 /**
- * Converts our internal cube state into a 54-character string that cubejs understands.
- * The cubejs solver expects the cube to be represented using the face letters:
- * U (up), R (right), F (front), D (down), L (left), B (back).
- */
-const cubeStateToString = (faces: Faces): string => {
-  // Helper that maps a face's color to the correct letter.
-  const mapColor = (color: string) => {
-    switch (color) {
-      case WHITE:
-        return "U";
-      case RED:
-        return "R";
-      case GREEN:
-        return "F";
-      case YELLOW:
-        return "D";
-      case ORANGE:
-        return "L";
-      case BLUE:
-        return "B";
-    }
-  };
-  const mapColorsReverseRow = (colors: string[]): string => {
-    let newColors = "";
-    for (let i = 0; i < 3; i++) {
-      for (let j = 2; j >= 0; j--) {
-        newColors += mapColor(colors[i * 3 + j]);
-      }
-    }
-    return newColors;
-  };
-
-  return (
-    faces.U.map((c) => mapColor(c)).join("") +
-    mapColorsReverseRow(faces.R) +
-    faces.F.map((c) => mapColor(c)).join("") +
-    faces.D.map((c) => mapColor(c)).join("") +
-    mapColorsReverseRow(faces.L) +
-    faces.B.map((c) => mapColor(c)).join("")
-  );
-};
-
-/**
  * Converts a single move into a string with standard notation that cubejs understands.
  * For example, { axis: "x", layer: 2, direction: 1 } becomes "R".
  * For a counterclockwise move, the direction is -1, and we append "'" to the face.
@@ -189,7 +146,7 @@ const parseSolution = (solution: string): Move[] => {
 const solveCube = (initialMoves: Move[]): Move[] => {
   let solution: string = "";
   try {
-    const cube = new Cube();
+    const cube = new (Cube as any)();
     const alreadyMadeMoves = rotationArrayToString(initialMoves);
     cube.move(alreadyMadeMoves);
     if (cube.isSolved()) {

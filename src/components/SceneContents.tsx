@@ -119,7 +119,9 @@ const SceneContents: React.FC = () => {
   }, []);
 
   // Figure out which axes we can rotate around based on the clicked face's normal
-  const getRotationAxes = (faceNormal: THREE.Vector3) => {
+  const getRotationAxes = (
+    faceNormal: THREE.Vector3
+  ): { horizontal: "x" | "y" | "z"; vertical: "x" | "y" | "z" } => {
     const tolerance = 0.9;
     if (Math.abs(faceNormal.z) > tolerance) {
       return { horizontal: "y", vertical: "x" };

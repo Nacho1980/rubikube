@@ -3,6 +3,7 @@ import React from "react";
 import { BLACK } from "../constants";
 import { Faces } from "../types";
 import { getDisplayIndex } from "../utils/utils";
+// type ThreeElement = THREE.Object3D;
 
 interface CubieProps {
   position: [number, number, number];

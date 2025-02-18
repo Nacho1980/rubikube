@@ -1,19 +1,20 @@
 {
-  "files": [],
-  "references": [{ "path": "./tsconfig.app.json" }],
   "compilerOptions": {
-    "jsx": "react-jsx",
-    "types": ["@react-three/fiber", "react", "react-dom", "three"],
-    "target": "es2017",
-    "lib": ["dom", "dom.iterable", "es2017"],
-    "module": "esnext",
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "noEmit": true,
-    "allowSyntheticDefaultImports": true,
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "types": ["@react-three/fiber"]
   },
-  "include": ["src", "types"]
+  "references": [{ "path": "./tsconfig.app.json" }]
 }
