@@ -9,5 +9,5 @@ Run: `npm run dev` (http://localhost:5173/)
 This application will be deployed in vercel, check the url in my repo https://github.com/Nacho1980
 
 ## Observations
+
 The solving of the cube sometimes fails but my debugging pointed to issues in the library cubejs
-Future improvements: adapt to use in phone
