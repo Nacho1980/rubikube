@@ -1,3 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -42,10 +45,10 @@
 }
 
 /*
-* Custom styles for the Rubik's Cube
+* Custom styles for the Rubik's Cube (replaced with Tailwind)
 */
 
-.app-container {
+/* .app-container {
   display: flex;
   flex-direction: row;
 }
@@ -53,7 +56,7 @@
 .title {
   font-size: 4em;
   font-weight: bold;
-  writing-mode: vertical-rl; /* or vertical-lr */
+  writing-mode: vertical-rl;
   transform: rotate(180deg);
 
   .text-blue {
@@ -111,4 +114,4 @@
     width: 100%;
     height: 100%;
   }
-}
+} */
