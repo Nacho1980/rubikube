@@ -6,9 +6,9 @@ import { shuffle, solve } from "./reducers/cubeSlice";
 function App() {
   const dispatch = useDispatch();
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row">
       {/* Title styled with Tailwind */}
-      <div className="text-[4em] font-bold rotate-180 [writing-mode:vertical-rl]">
+      <div className="text-[4em] font-bold md:rotate-180 [writing-mode:horizontal-tb] md:[writing-mode:vertical-rl]">
         <span className="text-blue-500">Ru</span>
         <span className="text-orange-500">bi</span>
         <span className="text-green-500">Ku</span>
