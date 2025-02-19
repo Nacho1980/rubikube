@@ -82,7 +82,12 @@ const moveToString = (move: Move): string => {
   return face + (isPrime ? "'" : "");
 };
 
-export const rotationArrayToString = (moves: Move[]): string => {
+/**
+ * Converts an array of moves into a string with standard notation that cubejs understands.
+ * For example, [{ axis: "x", layer: 2, direction: 1 }, { axis: "y", layer: 0, direction: -1 }]
+ * becomes "R D'".
+ */
+export const moveArrayToString = (moves: Move[]): string => {
   if (moves.length === 0) {
     return "";
   }
@@ -141,13 +146,26 @@ const parseSolution = (solution: string): Move[] => {
 };
 
 /**
- * solveCube takes the current cube state and returns a sequence of moves.
+ * Reverses the direction of each move in the array and returns a new array.
  */
-const solveCube = (initialMoves: Move[]): Move[] => {
+export const solveCubeMovesReversal = (moves: Move[]): Move[] => {
+  return moves
+    .map((move) => ({
+      ...move,
+      direction: -move.direction as 1 | -1,
+    }))
+    .reverse();
+};
+
+/**
+ * solveCube takes the current cube state and returns a sequence of moves.
+ * The cubejs solve does not always provide a correct sequence of movements.
+ */
+export const solveCube = (initialMoves: Move[]): Move[] => {
   let solution: string = "";
   try {
     const cube = new (Cube as any)();
-    const alreadyMadeMoves = rotationArrayToString(initialMoves);
+    const alreadyMadeMoves = moveArrayToString(initialMoves);
     cube.move(alreadyMadeMoves);
     if (cube.isSolved()) {
       console.log("Cube is already solved. No moves needed.");
@@ -162,5 +180,3 @@ const solveCube = (initialMoves: Move[]): Move[] => {
   const moves = parseSolution(solution);
   return moves;
 };
-
-export default solveCube;

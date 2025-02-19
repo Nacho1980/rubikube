@@ -10,7 +10,11 @@ import {
   YELLOW,
 } from "../constants";
 import { Faces, Move } from "../types";
-import solveCube, { isCubeSolved } from "../utils/RubikCubeSolver";
+import {
+  isCubeSolved,
+  moveArrayToString,
+  solveCubeMovesReversal,
+} from "../utils/RubikCubeSolver";
 import {
   coordsToLinear,
   getRotationIndex,
@@ -253,6 +257,31 @@ const rotateZ = (faces: Faces, layer: number, direction: 1 | -1) => {
   }
 };
 
+/**
+ * Generates a random move that does not undo the previous move.
+ * This is used for shuffling the cube.
+ */
+const generateRandomMove = (
+  prevAxis: "x" | "y" | "z",
+  prevLayer: number,
+  prevDirection: 1 | -1
+): Move => {
+  const axes: ("x" | "y" | "z")[] = ["x", "y", "z"];
+  let axis = prevAxis;
+  let layer = prevLayer;
+  let direction = -prevDirection as 1 | -1;
+  while (
+    axis === prevAxis &&
+    layer === prevLayer &&
+    direction === -prevDirection
+  ) {
+    axis = axes[Math.floor(Math.random() * axes.length)];
+    layer = Math.random() < 0.5 ? 0 : 2; // layer: 0 or 2
+    direction = Math.random() < 0.5 ? 1 : -1;
+  }
+  return { axis, layer, direction };
+};
+
 export const cubeSlice = createSlice({
   name: "cube",
   initialState,
@@ -294,11 +323,18 @@ export const cubeSlice = createSlice({
     shuffle: (state) => {
       state.moves = [];
       // Perform SUFFLE_MOVES number of random moves
-      const axes: ("x" | "y" | "z")[] = ["x", "y", "z"];
+      let lastAxis: "x" | "y" | "z" = "x";
+      let lastLayer = 0;
+      let lastDirection = 1 as -1 | 1;
       for (let i = 0; i < SHUFFLE_MOVES; i++) {
-        const axis = axes[Math.floor(Math.random() * axes.length)];
-        const layer = Math.random() < 0.5 ? 0 : 2; // layer: 0 or 2
-        const direction = Math.random() < 0.5 ? 1 : -1;
+        const { axis, layer, direction } = generateRandomMove(
+          lastAxis,
+          lastLayer,
+          lastDirection
+        );
+        lastAxis = axis;
+        lastLayer = layer;
+        lastDirection = direction;
 
         // We modify the state's faces in place by calling the appropriate rotation.
         if (axis === "x") {
@@ -313,7 +349,10 @@ export const cubeSlice = createSlice({
     },
     solve: (state) => {
       if (!isCubeSolved(state.faces)) {
-        const moves: Move[] = solveCube(state.moves);
+        //const moves: Move[] = solveCube(state.moves);
+        console.log("Previous moves: ", moveArrayToString(state.moves));
+        const moves: Move[] = solveCubeMovesReversal(state.moves);
+        console.log("Solved moves: ", moveArrayToString(moves));
         state.pendingMoves = moves;
       } else {
         console.log("Cube is already solved!");
